@@ -1,0 +1,29 @@
+# Elephant Detection Dataset Configuration
+# Place your dataset images and labels in the paths below.
+#
+# Expected directory layout:
+#   data/
+#     images/
+#       train/   <- training images  (.jpg / .png)
+#       val/     <- validation images
+#       test/    <- (optional) test images
+#     labels/
+#       train/   <- YOLO-format .txt label files for training images
+#       val/     <- YOLO-format .txt label files for validation images
+#       test/    <- (optional) label files for test images
+#
+# Each label file has one row per object:
+#   <class_id> <x_center> <y_center> <width> <height>
+# All values normalised to [0, 1] relative to image dimensions.
+
+path: data          # dataset root (relative to the project root)
+train: images/train
+val:   images/val
+test:  images/test  # optional
+
+# Number of classes
+nc: 1
+
+# Class names
+names:
+  0: elephant
