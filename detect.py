@@ -1,47 +1,64 @@
-from ultralytics import YOLO
+#--this is for detect using a jpg image
+#--command: py detect.py --image elephant.jpg --show
+
+
+from pathlib import Path
+import argparse
 import cv2
 import winsound
+from ultralytics import YOLO
 
-# ----- LOAD AI MODEL -----
-model = YOLO("yolov8n.pt")  # Pretrained YOLOv8 nano model
 
-# ----- OPEN WEBCAM -----
-cap = cv2.VideoCapture(0)  # 0 = default laptop webcam
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Detect elephants in a JPG image using YOLOv8")
+    parser.add_argument("--image", required=True, help="Path to input JPG/PNG image")
+    parser.add_argument("--model", default="yolov8n.pt", help="Path to YOLO model file")
+    parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold")
+    parser.add_argument("--show", action="store_true", help="Show result image in a window")
+    return parser.parse_args()
 
-print("Starting real-time elephant detection. Press 'q' to quit.")
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+def main() -> None:
+    args = parse_args()
+    image_path = Path(args.image)
 
-    # ----- DETECTION -----
-    results = model(frame)
+    if not image_path.exists():
+        print(f"Image not found: {image_path}")
+        return
 
-    elephant_detected = False
+    model = YOLO(args.model)
+    results = model.predict(source=str(image_path), conf=args.conf, verbose=False)
+    result = results[0]
 
-    for r in results:
-        for box in r.boxes:
-            cls = int(box.cls[0])
-            label = model.names[cls]
+    elephant_boxes = []
+    for box in result.boxes:
+        cls = int(box.cls[0])
+        label = model.names[cls]
+        if label == "elephant":
+            conf = float(box.conf[0])
+            elephant_boxes.append(conf)
 
-            if label == "elephant":
-                elephant_detected = True
+    if elephant_boxes:
+        print(f"ELEPHANT DETECTED! Count: {len(elephant_boxes)}")
+        print("Confidences:", ", ".join(f"{c:.2f}" for c in elephant_boxes))
+        winsound.Beep(2000, 500)
+    else:
+        print("No elephant detected in this image.")
 
-    # ----- ALERT -----
-    if elephant_detected:
-        print("ELEPHANT DETECTED!")
-        winsound.Beep(2000, 500)  # Alert sound
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / f"detected_{image_path.name}"
 
-    # ----- SHOW CAMERA FEED -----
-    annotated_frame = results[0].plot()
-    cv2.imshow("Elephant Detection", annotated_frame)
+    annotated = result.plot()
+    cv2.imwrite(str(output_path), annotated)
+    print(f"Saved result image: {output_path}")
 
-    # Press 'q' to quit
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    if args.show:
+        cv2.imshow("Elephant Detection", annotated)
+        print("Press any key to close image window.")
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
-cap.release()
-cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()

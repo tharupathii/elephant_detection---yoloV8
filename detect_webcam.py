@@ -1,3 +1,5 @@
+#--this is for detect using the webcam
+
 from ultralytics import YOLO
 import cv2
 import winsound
